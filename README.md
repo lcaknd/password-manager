@@ -6,7 +6,7 @@
 ## After that run the following commands to get the appropriate output
 
 **For generating new password:** 
- - $ python passman.py add -title instagram -username user123456 -generatepassword
+    $ python passman.py add -title instagram -username user123456 -generatepassword
 
 **For Copying password:** 
- - $ python passman.py copy -title instagram
+    $ python passman.py copy -title instagram
