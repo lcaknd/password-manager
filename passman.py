@@ -136,7 +136,33 @@ def generate_password():
 
     return "".join(temp_password_list)  # returning the password
 
+def delete_password(passwords, title):
+    """
+    Function employed in deleting a password
+    :param passwords: list of passwords
+    :param title: title of password to be deleted
+    :return: None
+    """
+    index = 0
+    found = False
+    confirm = input("Do you really wanted to delete the password? (yes/no): ")
+    if confirm.lower() == "yes":
+        for password in passwords:
+            if password.get("title").lower() == title.lower():
+                found = True
+                break
+            index += 1
 
+        if found:
+            passwords.pop(index)
+            update_passwords(passwords)
+            print("Your password is successfully deleted. ")
+        else:
+            print("This password is not present. ")
+    else:
+        print("Delete operation aborted!")
+
+        
 def main():
     """
     Main function
