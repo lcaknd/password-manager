@@ -259,22 +259,23 @@ def export_password(passwords, file_name):
 
 def change_master():
     """
-    Function employed in changing master password
+    Function employed in changing Master-Password
     :return: None
     """
     if read_master_password_file():
-        password = getpass.getpass(prompt="Create your master password: ")
-        re_enter_password = getpass.getpass(prompt="Re-enter your master password: ")
+        password = getpass.getpass(prompt="Create your Master-Password: ")
+        re_enter_password = getpass.getpass(prompt="Re-enter your Master-Password: ")
 
         while password != re_enter_password:  # ask for password until password1 is not matching with password2
-            password = getpass.getpass(prompt="Create your master password: ")
-            re_enter_password = getpass.getpass(prompt="Re-enter your master password: ")
+            password = getpass.getpass(prompt="Create your Master-Password: ")
+            re_enter_password = getpass.getpass(prompt="Re-enter your Master-Password: ")
 
         current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         master_password_update(password, current_time)
+        print("Master-Password successfully updated.")
 
     else:
-        print("Your master password is wrong. ")
+        print("Your Master-Password is wrong.")
 
 
 def main():
