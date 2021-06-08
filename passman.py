@@ -1,9 +1,8 @@
-import os
+import csv
 import getpass
 import json
 import pathlib
 import datetime
-import subprocess
 import sys
 import string
 import random
@@ -110,12 +109,12 @@ def copy2clip(text):
     pyperclip.copy(text)
 
 
-def generate_password():
+def generate_password(length=12, case="", symbol=""):
     """
     Function employed in generating random password
     :return: random password (str)
     """
-    max_length = 12
+    max_length = length
 
     # all characters that are going to be used in password
     digits = list(string.digits)
@@ -123,9 +122,31 @@ def generate_password():
     lowercase = list(string.ascii_lowercase)
     symbols = list(string.punctuation)
 
-    combined_password = digits + uppercase + lowercase + symbols
+    if case.lower() == "l":
+        if symbol:
+            combined_password = digits + lowercase
+            temp_password = random.choice(digits) + random.choice(lowercase)
+        else:
+            combined_password = digits + lowercase + symbols
+            temp_password = random.choice(digits) + random.choice(lowercase) + random.choice(symbols)
 
-    temp_password = random.choice(digits) + random.choice(uppercase) + random.choice(lowercase) + random.choice(symbols)
+    elif case.lower() == "u":
+        if symbol:
+            combined_password = digits + uppercase
+            temp_password = random.choice(digits) + random.choice(uppercase)
+        else:
+            combined_password = digits + uppercase + symbols
+            temp_password = random.choice(digits) + random.choice(uppercase) + random.choice(
+                symbols)
+
+    else:
+        if symbol:
+            combined_password = digits + uppercase + lowercase
+            temp_password = random.choice(digits) + random.choice(uppercase) + random.choice(lowercase)
+        else:
+            combined_password = digits + uppercase + lowercase + symbols
+            temp_password = random.choice(digits) + random.choice(uppercase) + random.choice(lowercase) + random.choice(
+                symbols)
 
     temp_password_list = []
     for i in range(max_length - 4):
@@ -135,6 +156,7 @@ def generate_password():
         random.shuffle(temp_password_list)  # reshuffling the password
 
     return "".join(temp_password_list)  # returning the password
+
 
 def delete_password(passwords, title):
     """
@@ -162,14 +184,106 @@ def delete_password(passwords, title):
     else:
         print("Delete operation aborted!")
 
-        
+
+def add_password(passwords, **kwargs):
+    """
+    Function employed in adding the new password
+    :param passwords: list of passwords
+    :param kwargs: additional arguments
+    :return: None
+    """
+    title = kwargs.get("title")
+    username = kwargs.get("username")
+
+    length = (input("Enter the length of the password (leave empty for default length): "))
+    cases = input("Enter 'u' for only uppercases, 'l' for only lowercases (leave empty for default): ")
+    symbol = input("Do you want to keep symbols ('no' for no symbols) (leave empty for default): ")
+    url = input("Do you have any URL? (leave empty for default): ")
+    
+    if length == "":
+        password = generate_password(case=cases, symbol=symbol)  # generating new password
+    else:
+        password = generate_password(int(length), case=cases, symbol=symbol)
+    passwords.append({
+        "title": title,
+        "username": username,
+        "password": password,
+        "url": url
+    })
+
+    update_passwords(passwords)
+    sys.stdout.write("OK password created and copied to clipboard for next 30 seconds\n")
+    copy2clip(password)  # copying password to clipboard
+    time.sleep(30)
+    copy2clip("")  # removing the password from clipboard
+
+
+def change_password(passwords, title):
+    """
+    Function employed in changing the password
+    :param passwords: list of passwords
+    :param title: title whose password is going to be changed
+    :return: None
+    """
+    index = 0
+    found = False
+    for password in passwords:
+        if password.get("title").lower() == title.lower():
+            found = True
+            break
+        index += 1
+
+    if found:
+        passwords[index].update({"password": generate_password()})
+        update_passwords(passwords)
+    else:
+        print("Title: {} not found. ".format(title))
+
+
+def export_password(passwords, file_name):
+    """
+    Function employed in exporting data to CSV files
+    :param passwords: list of passwords
+    :param file_name: name of file
+    :return: None
+    """
+    rows = [["title", "username", "password", "url"]]
+    for password in passwords:
+        rows.append([password.get("title"), password.get("username"), password.get("password"), password.get("url")])
+    file = open(file_name, "w", encoding="utf-8")
+    print(rows)
+    writer = csv.writer(file)
+    writer.writerows(rows)
+    file.close()
+
+
+def change_master():
+    """
+    Function employed in changing master password
+    :return: None
+    """
+    if read_master_password_file():
+        password = getpass.getpass(prompt="Create your master password: ")
+        re_enter_password = getpass.getpass(prompt="Re-enter your master password: ")
+
+        while password != re_enter_password:  # ask for password until password1 is not matching with password2
+            password = getpass.getpass(prompt="Create your master password: ")
+            re_enter_password = getpass.getpass(prompt="Re-enter your master password: ")
+
+        current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        master_password_update(password, current_time)
+
+    else:
+        print("Your master password is wrong. ")
+
+
 def main():
     """
     Main function
     :return: None
     """
     passwords = read_password_file()
-    args = sys.argv
+    args = sys.argv   # ability to work with command line arguments
 
     if len(args) == 7:  # adding the new password
         if args[1] == "add" and args[2] == "-title" and args[4] == "-username" and args[6] == "-generatepassword":
@@ -181,18 +295,7 @@ def main():
                         break
 
                 if not found:
-                    password = generate_password()  # generating new password
-                    passwords.append({
-                        "title": args[3],
-                        "username": args[5],
-                        "password": password
-                    })
-
-                    update_passwords(passwords)
-                    sys.stdout.write("OK password created and copied to clipboard for next 30 seconds\n")
-                    copy2clip(password)  # copying password to clipboard
-                    time.sleep(30)
-                    copy2clip("")  # removing the password from clipboard
+                    add_password(passwords, title=args[3], username=args[5])
 
                 else:
                     sys.stdout.write("Password already exists for this title. \n")
@@ -204,6 +307,29 @@ def main():
             sys.stdout.write("Usage: python passman.py add -title instagram -username user123456 -generatepassword ("
                              "For generating new password)\n")
 
+    elif len(args) == 4 and args[1] == "delete" and args[2] == "-title":
+        if read_master_password_file():
+            title = args[3]
+            delete_password(passwords, title)
+        else:
+            sys.stdout.write("Your master password is wrong\n")
+
+    elif len(args) == 4 and args[1] == "change" and args[2] == "-title":
+        if read_master_password_file():
+            title = args[3]
+            change_password(passwords, title)
+        else:
+            sys.stdout.write("Your master password is wrong\n")
+
+    elif len(args) == 4 and args[1] == "export" and args[2] == "-filename":
+        if read_master_password_file():
+            export_password(passwords, args[3])
+        else:
+            sys.stdout.write("Your master password is wrong\n")
+
+    elif len(args) == 3 and args[1] == "master" and args[2] == "-update":
+        change_master()
+
     elif len(args) == 4:
         if args[1] == "copy" and args[2] == "-title":
             title = args[3]
@@ -214,8 +340,12 @@ def main():
                     if password.get("title") == title:
                         username = password.get("username")
                         user_password = password.get("password")
-                        sys.stdout.write("Username: {}|password copied to clipboard for next 30 seconds\n"
+                        url = password.get("url")
+
+                        sys.stdout.write("Username: {} | password copied to clipboard for next 30 seconds\n"
                                          "".format(username))
+                        if url != "":
+                            sys.stdout.write("URL: {}".format(url))
                         copy2clip(user_password)  # copying password to clipboard
                         time.sleep(30)
                         copy2clip("")  # removing the password from clipboard
@@ -223,7 +353,7 @@ def main():
                         break
 
                 if not found:
-                    sys.stdout.write("Your password exists for title: {}".format(title))
+                    sys.stdout.write("Your password does not exist for title: {}".format(title))
 
             else:
                 sys.stdout.write("Your master password is wrong\n")
@@ -236,6 +366,11 @@ def main():
                          "For generating new password)\n")
         sys.stdout.write("Usage: python passman.py copy -title instagram ("
                          "For copying password)\n")
+        sys.stdout.write("Usage: python passman.py delete -title instagram (For deleting a password)\n")
+        sys.stdout.write("Usage: python passman.py export -filename exported.csv (For exporting password to "
+                         "exported.csv)\n")
+        sys.stdout.write("Usage: python passman.py change -title instagram (For changing password of instagram)\n")
+        sys.stdout.write("Usage: python passman.py master -update (For changing master password)\n")
 
 
 if __name__ == '__main__':
