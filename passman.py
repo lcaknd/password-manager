@@ -237,7 +237,12 @@ def change_password(passwords, title):
     if found:
         passwords[index].update({"password": generate_password()})
         update_passwords(passwords)
-        print("Password has been changed successfully.")
+        print("Password has been changed successfully & in Clipboard for next 30 Seconds")
+        password_new = passwords[index].get("password")
+        copy2clip(password_new)  # copying password to clipboard
+        time.sleep(30)
+        copy2clip("")  # removing the password from clipboard
+
     else:
         print("Title: {} not found. ".format(title))
 
@@ -259,32 +264,71 @@ def export_password(passwords, file_name):
     file.close()
 
 
-def change_master():
+def update_master():
     """
-    Function employed in changing Master-Password
+    Function employed in updating Master-Password
     :return: None
     """
-    if read_master_password_file():
-        password = getpass.getpass(prompt="Create your Master-Password: ")
-        re_enter_password = getpass.getpass(prompt="Re-enter your Master-Password: ")
+    master_password = {}
 
-        while password != re_enter_password:  # ask for password until password1 is not matching with password2
-            password = getpass.getpass(prompt="Create your Master-Password: ")
+    with open(HOME + "/master_password.json", "r", encoding="utf-8") as file:  # opening Master-Password file
+        file_data = json.loads(file.read())
+        master_password["password"] = file_data.get("password")
+
+        password = getpass.getpass(prompt="Enter current Master-Password: ")
+        if password == master_password["password"]:
+            password_new = getpass.getpass(prompt="Create your Master-Password: ")
             re_enter_password = getpass.getpass(prompt="Re-enter your Master-Password: ")
 
-        current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        master_password_update(password, current_time)
-        print("Master-Password successfully updated.")
+            while password_new != re_enter_password:  # ask for password until password1 is not matching with password2
+                print("\nTyped in passwords do not match - Please try again:")
+                password_new = getpass.getpass(prompt="Create your Master-Password: ")
+                re_enter_password = getpass.getpass(prompt="Re-enter your Master-Password: ")
 
-    else:
-        print("Your Master-Password is wrong.")
+            current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            master_password_update(password_new, current_time)
+            print("Master-Password successfully updated.")
 
+        else: 
+            print("Entered Master-Password is wrong")
+
+def copy_password(passwords, title): 
+
+    found = False
+    for password in passwords:
+        if password.get("title") == title:
+            username = password.get("username")
+            user_password = password.get("password")
+
+            sys.stdout.write("Username: {} | Password copied to Clipboard for next 30 seconds\n".format(username))
+            
+            copy2clip(user_password)  # copying password to clipboard
+            time.sleep(30)
+            copy2clip("")  # removing the password from clipboard
+            found = True
+            break
+
+    if not found:
+        sys.stdout.write("Your password does not exist for title: {}".format(title))
+
+def help(): 
+    """
+    Ausgabe von möglichen Kommandozeilenargumenten
+    """
+    print("\n### HELP - USE FOLLOWING COMMANDS ###\n\nGenerating new password:\npython passman.py add -title instagram -username user123456 -generatepassword\n")
+    print("Copying password to clipboard:\npython passman.py copy -title instagram\n")
+    print("Deleting password:\npython passman.py delete -title instagram\n")
+    print("Exporting passwords to CSV:\npython passman.py export -filename export.csv\n")
+    print("Changing password:\npython passman.py change -title instagram\n")
+    print("Changing Master-Password:\npython passman.py master -update\n")
+    print("Help:\npython passman.py help")
 
 def main():
     """
     Main function
     :return: None
     """
+    
     passwords = read_password_file()
     args = sys.argv   # ability to work with command line arguments
 
@@ -304,7 +348,7 @@ def main():
                     sys.stdout.write("Password already exists for this title. \n")
 
             else:
-                sys.stdout.write("Your master password is wrong\n")
+                sys.stdout.write("Your Master-Password is wrong\n")
 
         else:
             sys.stdout.write("Usage: python passman.py add -title instagram -username user123456 -generatepassword ("
@@ -331,50 +375,20 @@ def main():
             sys.stdout.write("Your master password is wrong\n")
 
     elif len(args) == 3 and args[1] == "master" and args[2] == "-update":
-        change_master()
+        update_master()
 
-    elif len(args) == 4:
-        if args[1] == "copy" and args[2] == "-title":
+    elif len(args) == 4 and args[1] == "copy" and args[2] == "-title":
+        if read_master_password_file(): 
             title = args[3]
-            if read_master_password_file():
-                sys.stdout.write("Master password ok\n")
-                found = False
-                for password in passwords:
-                    if password.get("title") == title:
-                        username = password.get("username")
-                        user_password = password.get("password")
-                        url = password.get("url")
+            copy_password(passwords, title)
+        else: 
+            sys.stdout.write("Your Master-Password is wrong\n")
 
-                        sys.stdout.write("Username: {} | password copied to clipboard for next 30 seconds\n"
-                                         "".format(username))
-                        if url != "":
-                            sys.stdout.write("URL: {}".format(url))
-                        copy2clip(user_password)  # copying password to clipboard
-                        time.sleep(30)
-                        copy2clip("")  # removing the password from clipboard
-                        found = True
-                        break
+    elif len(args) == 2 and args[1] == "help":
+        help()
 
-                if not found:
-                    sys.stdout.write("Your password does not exist for title: {}".format(title))
-
-            else:
-                sys.stdout.write("Your master password is wrong\n")
-
-        else:
-            sys.stdout.write("Usage: python passman.py copy -title instagram ("
-                             "For copying password)\n")
     else:
-        sys.stdout.write("Usage: python passman.py add -title instagram -username user123456 -generatepassword ("
-                         "For generating new password)\n")
-        sys.stdout.write("Usage: python passman.py copy -title instagram ("
-                         "For copying password)\n")
-        sys.stdout.write("Usage: python passman.py delete -title instagram (For deleting a password)\n")
-        sys.stdout.write("Usage: python passman.py export -filename exported.csv (For exporting password to "
-                         "exported.csv)\n")
-        sys.stdout.write("Usage: python passman.py change -title instagram (For changing password of instagram)\n")
-        sys.stdout.write("Usage: python passman.py master -update (For changing master password)\n")
-
+        help()
 
 if __name__ == '__main__':
     main()
