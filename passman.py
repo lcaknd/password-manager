@@ -204,6 +204,7 @@ def add_password(passwords, **kwargs):
         password = generate_password(case=cases, symbol=symbol)  # generating new password
     else:
         password = generate_password(int(length), case=cases, symbol=symbol)
+     
     passwords.append({
         "title": title,
         "username": username,
@@ -236,6 +237,7 @@ def change_password(passwords, title):
     if found:
         passwords[index].update({"password": generate_password()})
         update_passwords(passwords)
+        print("Password has been changed successfully.")
     else:
         print("Title: {} not found. ".format(title))
 
