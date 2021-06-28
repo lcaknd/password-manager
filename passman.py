@@ -264,12 +264,13 @@ def export_password(passwords, file_name):
     for password in passwords: # adding the password data to rows list
         rows.append([password.get("title"), password.get("username"), password.get("password"), password.get("url")])
     file = open(file_name, "w", encoding="utf-8") # creating file (name defined by user)
-    print(rows) # output of password data
     
     # writing the password data to the file in csv format
     writer = csv.writer(file) 
     writer.writerows(rows)
     file.close()
+
+    print(rows) # output of password data
 
 
 def update_master():
@@ -307,8 +308,10 @@ def copy_password(passwords, title):
         if password.get("title") == title:
             username = password.get("username")
             user_password = password.get("password")
+            url = password.get("url")
 
-            sys.stdout.write("Username: {} | Password copied to Clipboard for next 30 seconds\n".format(username))
+            print("Username: {} | Password copied to Clipboard for next 30 seconds".format(username))
+            print("URL: {}".format(url))
             
             copy2clip(user_password)  # copying password to clipboard
             time.sleep(30)
@@ -323,7 +326,7 @@ def help():
     """
     Output of available functions
     """
-    print("\n### HELP - USE FOLLOWING COMMANDS ###\n\nGenerating new password:\npython passman.py add -title instagram -username user123456 -generatepassword\n")
+    print("### HELP - USE FOLLOWING COMMANDS ###\n\nGenerating new password:\npython passman.py add -title instagram -username user123456 -generatepassword\n")
     print("Copying password to clipboard:\npython passman.py copy -title instagram\n")
     print("Deleting password:\npython passman.py delete -title instagram\n")
     print("Exporting passwords to CSV:\npython passman.py export -filename export.csv\n")
@@ -396,6 +399,7 @@ def main():
         help()
 
     else: 
+        print("\n-ERROR: Your command does not match with any functions of this program-\n")
         help()
 
 if __name__ == '__main__':
